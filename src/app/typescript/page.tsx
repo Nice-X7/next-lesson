@@ -1,3 +1,5 @@
+import TypeScriptViews from "@/views/TypeScript/TypeScript.ui";
+
 export default function typescriptPage() {
-    return 'This is the TypeScript blog page'
+    return <TypeScriptViews />
 }

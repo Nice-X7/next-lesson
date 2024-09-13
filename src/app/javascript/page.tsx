@@ -1,3 +1,5 @@
+import { JSViews } from "@/views/JavaScript";
+
 export default function javascriptPage() {
-    return 'This is the JavaScript blog page'
+    return <JSViews />
 }

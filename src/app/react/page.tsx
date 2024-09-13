@@ -1,3 +1,5 @@
+import { ReactViews } from "@/views/react";
+
 export default function reactPage() {
-    return 'This is the react blog page'
+    return <ReactViews />
 }
