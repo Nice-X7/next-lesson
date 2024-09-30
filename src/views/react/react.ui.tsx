@@ -1,35 +1,54 @@
 'use client'
 
-import { reactData } from '@/app/api/react/reactData';
 import { PageLayout } from '@/core/layouts/PageLayout/PageLayout'
-import { Button, Flex, Radio, Stack, Text } from '@mantine/core';
+import { tsQueries } from '@/entities/typeScript';
+import { Button, Flex, Loader, Radio, Stack, Text } from '@mantine/core';
 import React, { useState } from 'react'
 
 export function ReactViews() {
-    const [currentQuestion, setCurrentQuestion] = useState<number>(0);
-    const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-    const [isAnswerCorrect, setIsAnswerCorrect] = useState<boolean | null>(null);
-    const [score, setScore] = useState(0);
+    const { data: questions } = tsQueries.useGetTypeScriptQueries()
+    const { mutateAsync: checkAnswer } = tsQueries.useCheckAnswerMutation();
 
-    const handleCheckAnswer = () => {
-        if (selectedAnswer === reactData[currentQuestion].correctAnswer) {
-            setIsAnswerCorrect(true);
-            setScore(score + 1);
-        } else {
-            setIsAnswerCorrect(false);
+    const [score, setScore] = useState(0);
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
+    const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+    const [message, setMessage] = useState<string>('');
+    const [isCorrect, setIsCorrect] = useState<boolean|null>(false);
+
+    if (!questions) return <Loader />;
+
+    const handleCheckAnswer = async () => {
+        if (!selectedAnswer || !questions) return;
+
+        try {
+            await checkAnswer({
+                question: questions.data[currentQuestionIndex].question,
+                selectedAnswer: selectedAnswer,
+            }).then((x) => {
+                setMessage(x.data.message)
+                setIsCorrect(x.data.isCorrect)
+            })
+
+            if (isCorrect) {
+                setScore(prev => prev + 1);
+            }
+        } catch (error) {
+            console.error("Ошибка при проверке ответа", error);
         }
     };
 
     const handleNextQuestion = () => {
         setSelectedAnswer(null);
-        setIsAnswerCorrect(null);
-        setCurrentQuestion(currentQuestion + 1);
-    };
+        setMessage('');
+        setIsCorrect(null);
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
+    }
+
     return (
         <PageLayout title='React (Тестовые задания)'>
             <Flex direction="column" gap="sm">
                 <Flex justify="center">
-                    <Text>{reactData[currentQuestion].question}</Text>
+                    <Text>{questions.data[currentQuestionIndex].question}</Text>
                 </Flex>
 
                 <Stack gap='xl'>
@@ -38,30 +57,25 @@ export function ReactViews() {
                         onChange={setSelectedAnswer}
                     >
                         <Flex direction='column' gap='md'>
-                            {reactData[currentQuestion].options.map((option, index) => (
+                            {questions.data[currentQuestionIndex].options.map((option, index) => (
                                 <Radio key={index} value={option} label={option} />
                             ))}
                         </Flex>
                     </Radio.Group>
 
-                    {isAnswerCorrect === null && (
-                        <Button onClick={handleCheckAnswer} disabled={!selectedAnswer}>
-                            Проверить ответ
-                        </Button>
+                    {message && (
+                        <Text c={isCorrect ? "green" : "red"}>{message}</Text>
+                    )}
+                    <Button onClick={handleCheckAnswer} disabled={!selectedAnswer}>
+                        Проверить ответ
+                    </Button>
+
+                    {currentQuestionIndex < questions.data.length - 1 && (
+                        <Button onClick={handleNextQuestion} disabled={!isCorrect}>Следующий вопрос</Button>
                     )}
 
-                    {isAnswerCorrect !== null && (
-                        <Text c={isAnswerCorrect ? 'green' : 'red'}>
-                            {isAnswerCorrect ? "Правильный ответ!" : "Неправильный ответ."}
-                        </Text>
-                    )}
-
-                    {isAnswerCorrect !== null && currentQuestion < reactData.length - 1 && (
-                        <Button onClick={handleNextQuestion}>Следующий вопрос</Button>
-                    )}
-
-                    {isAnswerCorrect !== null && currentQuestion === reactData.length - 1 && (
-                        <Text>Тест завершен! Ваш результат: {score} из {reactData.length}</Text>
+                    {message && currentQuestionIndex === questions.data.length - 1 && (
+                        <Text>Тест завершен! Ваш результат: {score} из {questions.data.length}</Text>
                     )}
                 </Stack>
             </Flex>

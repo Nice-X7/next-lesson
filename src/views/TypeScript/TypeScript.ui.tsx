@@ -1,5 +1,5 @@
 'use client'
-import { TSdata } from '@/app/api/TypeScript/TSdata';
+import { TSdata } from '@/app/api/typeScript/TSdata';
 import { PageLayout } from '@/core/layouts/PageLayout/PageLayout'
 import { Button, Flex, Radio, Stack, Text } from '@mantine/core';
 import React, { useState } from 'react'

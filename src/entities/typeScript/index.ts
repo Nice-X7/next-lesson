@@ -1,0 +1,1 @@
+export * as tsQueries from './ts.queries'

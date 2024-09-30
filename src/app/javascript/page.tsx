@@ -1,5 +1,5 @@
-import { JSViews } from "@/views/JavaScript";
+import { JSViews } from "@/views/javaScript";
 
 export default function javascriptPage() {
-    return <JSViews />
+    return  <JSViews />
 }

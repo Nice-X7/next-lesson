@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
     try {
-        const {question, selectAnswer} = await req.json();
+        const {question, selectedAnswer} = await req.json();
 
         const foundQuestion = reactData.find(q => q.question === question)
 
@@ -17,10 +17,12 @@ export async function POST(req: NextRequest) {
                 {status: 404}
             )
         }
-        const isCorrect = foundQuestion.correctAnswer === selectAnswer
+        const isCorrect = foundQuestion.correctAnswer === selectedAnswer
+        const message = isCorrect ? 'Правильный ответ' : 'Неправильный ответ';
 
         return NextResponse.json({
-            message: isCorrect ? 'Правильный ответ' : 'Неправильный ответ'
+            message,
+            isCorrect
         })
 
     } catch (error: any) {

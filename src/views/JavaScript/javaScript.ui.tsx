@@ -1,70 +1,82 @@
 'use client'
-import { JSdata } from '@/app/api/JavaScript/JSdata';
+
 import { PageLayout } from '@/core/layouts/PageLayout/PageLayout'
-import { Button, Flex, Radio, Stack, Text } from '@mantine/core';
+import { JSQueries } from '@/entities/javaScript';
+import { Button, Flex, Loader, Radio, Stack, Text } from '@mantine/core';
 import React, { useState } from 'react'
 
 export function JSViews() {
-    const [currentQuestion, setCurrentQuestion] = useState<number>(0);
-    const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-    const [isAnswerCorrect, setIsAnswerCorrect] = useState<boolean | null>(null);
-    const [score, setScore] = useState(0);
+    const { data: questions } = JSQueries.useGetJSDataQuery()
+    const { mutateAsync: checkAnswer } = JSQueries.useCheckAnswerMutation()
 
-    const handleCheckAnswer = () => {
-        if (selectedAnswer === JSdata[currentQuestion].correctAnswer) {
-            setIsAnswerCorrect(true);
-            setScore(score + 1);
-        } else {
-            setIsAnswerCorrect(false);
+    const [score, setScore] = useState(0);
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
+    const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+    const [message, setMessage] = useState<string>('');
+    const [isCorrect, setIsCorrect] = useState<boolean | null>(false);
+
+    const handleCheckAnswer = async () => {
+
+        if (!selectedAnswer || !questions) return;
+
+        try {
+            await checkAnswer({
+                question: questions.data[currentQuestionIndex].question,
+                selectedAnswer: selectedAnswer,
+            }).then((x) => {
+                setMessage(x.data.message)
+                setIsCorrect(x.data.isCorrect)
+            })
+
+            if (isCorrect) {
+                setScore(prev => prev + 1);
+            }
+        } catch (error) {
+            console.error("Ошибка при проверке ответа", error);
         }
     };
 
-    const handleNextQuestion = () => {
-        setSelectedAnswer(null);
-        setIsAnswerCorrect(null);
-        setCurrentQuestion(currentQuestion + 1);
-    };
+        const handleNextQuestion = () => {
+            setSelectedAnswer(null);
+            setMessage('');
+            setIsCorrect(null);
+            setCurrentQuestionIndex(currentQuestionIndex + 1);
+        };
 
-    return (
-        <PageLayout title='JavaScript (тестовые задания)'>
-            <Flex direction="column" gap="sm">
-                <Flex justify="center">
-                    <Text>{JSdata[currentQuestion].question}</Text>
-                </Flex>
+        if (!questions) return <Loader />;
 
-                <Stack gap='xl'>
-                    <Radio.Group
-                        value={selectedAnswer}
-                        onChange={setSelectedAnswer}
-                    >
-                        <Flex direction='column' gap='md'>
-                            {JSdata[currentQuestion].options.map((option, index) => (
-                                <Radio key={index} value={option} label={option} />
-                            ))}
-                        </Flex>
-                    </Radio.Group>
 
-                    {isAnswerCorrect === null && (
+        return (
+            <PageLayout title='JavaScript (теория)'>
+                <Flex direction="column" gap="sm">
+                    <Flex justify="center">
+                        <Text>{questions.data[currentQuestionIndex].question}</Text>
+                    </Flex>
+
+                    <Stack gap='xl'>
+                        <Radio.Group value={selectedAnswer} onChange={setSelectedAnswer}>
+                            <Flex direction="column" gap="md">
+                                {questions.data[currentQuestionIndex].options.map((option, index) => (
+                                    <Radio key={index} value={option} label={option} />
+                                ))}
+                            </Flex>
+                        </Radio.Group>
+                        {message && (
+                            <Text c={isCorrect ? "green" : "red"}>{message}</Text>
+                        )}
                         <Button onClick={handleCheckAnswer} disabled={!selectedAnswer}>
                             Проверить ответ
                         </Button>
-                    )}
 
-                    {isAnswerCorrect !== null && (
-                        <Text c={isAnswerCorrect ? 'green' : 'red'}>
-                            {isAnswerCorrect ? "Правильный ответ!" : "Неправильный ответ."}
-                        </Text>
-                    )}
+                        {currentQuestionIndex < questions.data.length - 1 && (
+                            <Button onClick={handleNextQuestion} disabled={!isCorrect}>Следующий вопрос</Button>
+                        )}
 
-                    {isAnswerCorrect !== null && currentQuestion < JSdata.length - 1 && (
-                        <Button onClick={handleNextQuestion}>Следующий вопрос</Button>
-                    )}
-
-                    {isAnswerCorrect !== null && currentQuestion === JSdata.length - 1 && (
-                        <Text>Тест завершен! Ваш результат: {score} из {JSdata.length}</Text>
-                    )}
-                </Stack>
-            </Flex>
-        </PageLayout>
-    )
-}
+                        {message && currentQuestionIndex === questions.data.length - 1 && (
+                            <Text>Тест завершен! Ваш результат: {score} из {questions.data.length}</Text>
+                        )}
+                    </Stack>
+                </Flex>
+            </PageLayout>
+        )
+    }

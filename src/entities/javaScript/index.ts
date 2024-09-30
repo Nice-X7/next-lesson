@@ -1,0 +1,1 @@
+export * as JSQueries from './js.queries'
